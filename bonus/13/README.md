@@ -1,6 +1,6 @@
-# Bonus 3
+# 13 - Trouve l'input 4
 
-- We login as user bonus3:
+- On se connecte en tant que bonus3:
 ```
 RELRO           STACK CANARY      NX            PIE             RPATH      RUNPATH      FILE
 No RELRO        No canary found   NX enabled    No PIE          No RPATH   No RUNPATH   /home/user/bonus3/bonus3
@@ -91,7 +91,7 @@ Dump of assembler code for function main:
 End of assembler dump.
 ```
 
-- Let's highlight the most important parts of the program:
+- Voyons les parties les plus importantes du programme:
 ```
    0x08048502 <+14>:    mov    $0x80486f0,%edx
    0x08048507 <+19>:    mov    $0x80486f2,%eax
@@ -104,8 +104,6 @@ End of assembler dump.
 
 >`0x80486f2: "/home/user/end/.pass"`
 
->Open the latest flag in read mode, store its file descriptor in `0x9c(%esp)`.
-
 ```
    0x0804854d <+89>:    lea    0x18(%esp),%eax
    0x08048551 <+93>:    mov    0x9c(%esp),%edx
@@ -115,7 +113,7 @@ End of assembler dump.
    0x0804856c <+120>:   mov    %eax,(%esp)
    0x0804856f <+123>:   call   0x80483d0 <fread@plt>
 ```
->Read the flag, its content will be stored in `0x18(%esp)`.
+> Ouvre et lit notre flag.
 
 ```
    0x08048574 <+128>:   movb   $0x0,0x59(%esp)
@@ -126,7 +124,7 @@ End of assembler dump.
    0x08048584 <+144>:   call   0x8048430 <atoi@plt>
    0x08048589 <+149>:   movb   $0x0,0x18(%esp,%eax,1)
 ```
->`<atoi@plt>` the parameter given to the program, then NULL terminate the content of the flag at the index corresponding to the return of `<atoi@plt>`.
+> `<atoi@plt>` le paramètre donné au programme, puis NULL terminate le contenu du flag à l'index correspondant au retour de `<atoi@plt>`.
 
 ```
    0x080485c7 <+211>:   mov    0xc(%ebp),%eax
@@ -149,9 +147,9 @@ End of assembler dump.
 ```
 >`0x804870a: "/bin/sh"`
 
->Compare the given parameter to the program with the content of the flag, open a shell if the values are identical.
+>Compare le paramètre donné au programme avec le contenu du flag, ouvre un shell si les valeurs sont identiques.
 
-- Sooooo....
+- Du coup:
 ```
 bonus3@RainFall:~$ ./bonus3 ""
 

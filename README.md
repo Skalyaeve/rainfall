@@ -1,5 +1,5 @@
 # Rainfall
-> *This project is an introduction to the exploitation of (elf-like) binary*
+> *This project is an introduction to the exploitation of (elf-like) binary.*
 
 *As a developer, you might have to work on softwares that will be used by hundreds of people.*
 *You have learned to develop more or less complex programs without taking security into account.*
@@ -26,7 +26,7 @@ Before asking for help, ask yourself if you have factored in all the possibiliti
 - [x] 07 - Heap buffer overflow 3
 - [x] 08 - Trouve l'input 2
 - [x] 09 - Heap buffer overflow 4
-- [x] 10 - xxx
-- [x] 11 - xxx
-- [x] 12 - xxx
-- [x] 13 - xxx
+- [x] 10 - Stack buffer overflow 2
+- [x] 11 - Trouve l'input 3
+- [x] 12 - Stack buffer overflow 3
+- [x] 13 - Trouve l'input 4

